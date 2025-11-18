@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace osu_mod_leaderboard;
 
@@ -13,8 +14,11 @@ internal abstract class Program
     private const int Delay = 60000 / RequestsPerMinute;
     
     // get your clientid and secret from https://osu.ppy.sh/home/account/edit#oauth
+    // (im too lazy for .env config)
     private const string ClientId = "";
     private const string ClientSecret = "";
+    
+    private const string ExcludedMod = "DT";
 
     private class RankedUser
     {
@@ -23,9 +27,10 @@ internal abstract class Program
         public int Rank { get; set; }
     }
 
-    private abstract class OsuScore
+    private class OsuScore
     {
         // ReSharper disable once CollectionNeverUpdated.Local
+        [JsonPropertyName("mods")]
         public required List<string> Mods { get; set; }
     }
 
@@ -34,14 +39,14 @@ internal abstract class Program
         string? token = await GetToken(ClientId, ClientSecret);
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             
-        var userList = await FetchTopUsers(1000);
+        var userList = await FetchTopUsers(500);
 
         for (int i = 0; i < userList.Count; i++)
         {
             userList[i].Rank = i + 1;
         }
 
-        var noDtUsers = new List<RankedUser>();
+        var usersWithoutCertainMods = new List<RankedUser>();
             
         foreach (RankedUser user in userList)
         {
@@ -49,17 +54,20 @@ internal abstract class Program
             {
                 var plays = await GetAllTopPlays(user.Id, user.Username, user.Rank);
 
-                bool hasDt = plays.Any(p =>
+                bool containsCertainMods = plays.Any(p =>
                     p.Mods.Any(m =>
-                        string.Equals(m, "DT", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(m, "NC", StringComparison.OrdinalIgnoreCase)
+                        string.Equals(m, ExcludedMod, StringComparison.OrdinalIgnoreCase)
                     )
                 );
 
-                if (!hasDt)
+                if (!containsCertainMods)
                 {
-                    noDtUsers.Add(user);
-                    Console.WriteLine($"User {user.Username} (Rank {user.Rank}) has no plays with DT");
+                    usersWithoutCertainMods.Add(user);
+                    Console.WriteLine($"{user.Username} (#{user.Rank}) has no plays with {ExcludedMod}.");
+                }
+                else
+                { 
+                    Console.WriteLine($"{user.Username} (#{user.Rank}) has plays with {ExcludedMod}.");
                 }
             }
             catch (Exception ex)
@@ -68,10 +76,13 @@ internal abstract class Program
             }
         }
 
-        Console.WriteLine("\n Users with no DT plays:");
-        foreach (RankedUser u in noDtUsers.OrderBy(u => u.Rank))
+        Console.WriteLine($"\nUsers with no {ExcludedMod} plays:");
+
+        int order = 1;
+        foreach (RankedUser u in usersWithoutCertainMods.OrderBy(u => u.Rank))
         {
-            Console.WriteLine($"Rank {u.Rank}: {u.Username}");
+            Console.WriteLine($"{order}: {u.Username} (#{u.Rank})");
+            order++;
         }
     }
     private static async Task<List<RankedUser>> FetchTopUsers(int count)
@@ -145,7 +156,7 @@ internal abstract class Program
             res.EnsureSuccessStatusCode();
             string json = await res.Content.ReadAsStringAsync();
 
-            var plays = JsonSerializer.Deserialize<List<OsuScore>>(json) ?? [];
+            var plays = JsonSerializer.Deserialize<List<OsuScore>>(json) ?? new List<OsuScore>();
             if (plays.Count == 0) break;
 
             allPlays.AddRange(plays);
