@@ -10,7 +10,7 @@ Clone the repo into your editor of choice:
 <code>git clone https://github.com/Aerodite/osu-mod-leaderboard.git</code>
 ##
 
-Replace lines 18-19 with your [osu! oauth credentials](https://osu.ppy.sh/home/account/edit#oauth)
+Replace lines 21-22 with your [osu! oauth credentials](https://osu.ppy.sh/home/account/edit#oauth)
 
 <code>private const string ClientId = "727727";
 private const string ClientSecret = "secretbox";</code>
@@ -18,7 +18,7 @@ private const string ClientSecret = "secretbox";</code>
 (just create a "New OAuth Application" with the callback being your profile url if you don't have one already)
 ##
 
-Then change the mod(s) on line 21 to whatever you want to filter out
+Then change the mod(s) on line 26 to whatever you want to filter out
 
 <code>private static readonly string[] ExcludedMods = ["DT", "NC"];</code>
 ##
