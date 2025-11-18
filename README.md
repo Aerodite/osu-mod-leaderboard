@@ -14,6 +14,8 @@ Replace lines 18-19 with your [osu! oauth credentials](https://osu.ppy.sh/home/a
 
 <code>private const string ClientId = "727727";
 private const string ClientSecret = "secretbox";</code>
+
+(just create a "New OAuth Application" with the callback being your profile url if you don't have one already)
 ##
 
 Then change the mod(s) on line 21 to whatever you want to filter out
